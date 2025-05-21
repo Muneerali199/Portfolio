@@ -1,5 +1,5 @@
 "use client";
-import React from "react";
+import React, { useState } from "react";
 import { useForm } from "react-hook-form";
 import emailjs from "@emailjs/browser";
 import { Toaster, toast } from "sonner";
@@ -7,13 +7,7 @@ import { motion } from "framer-motion";
 
 const container = {
   hidden: { opacity: 0 },
-  show: {
-    opacity: 1,
-    transition: {
-      staggerChildren: 0.3,
-      delayChildren: 0.2,
-    },
-  },
+  show: { opacity: 1 },
 };
 
 const item = {
@@ -22,6 +16,7 @@ const item = {
 };
 
 export default function Form() {
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const {
     register,
     handleSubmit,
@@ -30,47 +25,36 @@ export default function Form() {
 
   const sendEmail = (params) => {
     const toastId = toast.loading("Sending your message, please wait...");
+    setIsSubmitting(true);
 
-    toast.info(
-      "Form submissions are demo-only here. Please checkout the final code repo to enable it. If you want to connect you can reach out to me via alimuneerali245@gmail.com.",
-      {
-        id: toastId,
-      }
-    );
-
-    // comment out the above toast.info and uncomment the below code to enable emailjs
-
-    // emailjs
-    //   .send(
-    //     process.env.NEXT_PUBLIC_SERVICE_ID,
-    //     process.env.NEXT_PUBLIC_TEMPLATE_ID,
-    //     params,
-    //     {
-    //       publicKey: process.env.NEXT_PUBLIC_PUBLIC_KEY,
-    //       limitRate: {
-    //         throttle: 5000, // you can not send more then 1 email per 5 seconds
-    //       },
-    //     }
-    //   )
-    //   .then(
-    //     () => {
-    //       toast.success(
-    //         "I have received your message, I will get back to you soon!",
-    //         {
-    //           id: toastId,
-    //         }
-    //       );
-    //     },
-    //     (error) => {
-    //       // console.log("FAILED...", error.text);
-    //       toast.error(
-    //         "There was an error sending your message, please try again later!",
-    //         {
-    //           id: toastId,
-    //         }
-    //       );
-    //     }
-    //   );
+    const start = Date.now();
+    emailjs
+      .send(
+        process.env.NEXT_PUBLIC_SERVICE_ID, // service_gdxjbfk
+        process.env.NEXT_PUBLIC_TEMPLATE_ID, // template_vkcl3dk
+        params,
+        {
+          publicKey: process.env.NEXT_PUBLIC_PUBLIC_KEY, // DtUYJ-JWRGJADSTWl
+          limitRate: { throttle: 2000 }, // 2-second throttle
+        }
+      )
+      .then(
+        () => {
+          console.log(`Email sent in ${Date.now() - start}ms`);
+          toast.success(
+            "I have received your message, I will get back to you soon!",
+            { id: toastId }
+          );
+        },
+        (error) => {
+          console.error("EmailJS Error:", error);
+          toast.error(
+            "There was an error sending your message, please try again later!",
+            { id: toastId }
+          );
+        }
+      )
+      .finally(() => setIsSubmitting(false));
   };
 
   const onSubmit = (data) => {
@@ -80,13 +64,21 @@ export default function Form() {
       reply_to: data.email,
       message: data.message,
     };
-
     sendEmail(templateParams);
   };
 
   return (
     <>
       <Toaster richColors={true} />
+      {isSubmitting && (
+        <div className="flex items-center justify-center mb-4">
+          <svg className="animate-spin h-5 w-5 mr-3" viewBox="0 0 24 24">
+            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z" />
+          </svg>
+          Sending...
+        </div>
+      )}
       <motion.form
         variants={container}
         initial="hidden"
@@ -102,7 +94,7 @@ export default function Form() {
             required: "This field is required!",
             minLength: {
               value: 3,
-              message: "Name should be atleast 3 characters long.",
+              message: "Name should be at least 3 characters long.",
             },
           })}
           className="w-full p-2 rounded-md shadow-lg text-foreground focus:outline-none focus:ring-2 focus:ring-accent/50 custom-bg"
@@ -145,14 +137,12 @@ export default function Form() {
             {errors.message.message}
           </span>
         )}
-
         <motion.input
           variants={item}
           value="Cast your message!"
-          className="px-10 py-4 rounded-md shadow-lg bg-background border border-accent/30 border-solid
-      hover:shadow-glass-sm backdrop-blur-sm text-foreground focus:outline-none focus:ring-2 focus:ring-accent/50 cursor-pointer capitalize
-      "
+          className="px-10 py-4 rounded-md shadow-lg bg-background border border-accent/30 border-solid hover:shadow-glass-sm backdrop-blur-sm text-foreground focus:outline-none focus:ring-2 focus:ring-accent/50 cursor-pointer capitalize"
           type="submit"
+          disabled={isSubmitting}
         />
       </motion.form>
     </>
